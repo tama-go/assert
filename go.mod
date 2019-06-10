@@ -1,4 +1,4 @@
-module github.com/koron-go/assert
+module github.com/tama-go/assert
 
 go 1.12
 
