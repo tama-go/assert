@@ -32,47 +32,39 @@ func get(typ reflect.Type) []cmp.Option {
 	return repos[typ]
 }
 
-type logger interface {
-	Helper()
-	Logf(format string, args ...interface{})
-}
-
-func check(l logger, x, y interface{}) bool {
-	l.Helper()
-
-	tx, ty := reflect.TypeOf(x), reflect.TypeOf(y)
-	opts := get(tx)
-	if tx != ty {
-		opts2 := get(ty)
+func check(t testing.TB, expected, actual interface{}) bool {
+	texp, tact := reflect.TypeOf(expected), reflect.TypeOf(actual)
+	opts := get(texp)
+	if texp != tact {
+		opts2 := get(tact)
 		if len(opts2) > 0 {
 			tmp := make([]cmp.Option, 0, len(opts)+len(opts2))
 			opts = append(append(tmp, opts...), opts2...)
 		}
 	}
 
-	diff := cmp.Diff(x, y, opts...)
+	diff := cmp.Diff(expected, actual, opts...)
 	if diff == "" {
 		return true
 	}
-	l.Logf("not equal\n%s", diff)
+	t.Logf("not equal\nName: %s\nDiff:\n--- Expected\n+++ Actual\n%s", t.Name(), diff)
 	return false
 }
 
-// Equal checks equality between x and y.
-// When not equal tb.Fail() is called.
-func Equal(tb testing.TB, x, y interface{}) {
+// Equal checks equality between "expected" and "actual".
+// Test will be aborted soon if it wasn't match.
+func Equal(tb testing.TB, expected, actual interface{}) {
 	tb.Helper()
-	if check(tb, x, y) {
+	if check(tb, expected, actual) {
 		return
 	}
-	tb.Fail()
+	tb.FailNow()
 }
 
-// FatalEqual checks equality between x and y.
-// When not equal tb.FailNow() is called.
-func FatalEqual(tb testing.TB, x, y interface{}) {
+// FatalEqual checks equality between expected and actual.
+func FatalEqual(tb testing.TB, expected, actual interface{}) {
 	tb.Helper()
-	if check(tb, x, y) {
+	if check(tb, expected, actual) {
 		return
 	}
 	tb.FailNow()
