@@ -1,11 +1,23 @@
 package assert
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
+
+// CommonOptions is common options which applied for all types.
+var CommonOptions = []cmp.Option{
+	cmpopts.IgnoreInterfaces(struct{ context.Context }{}),
+}
+
+// AddCommon adds common cmp.Options for all types.
+func AddCommon(opts ...cmp.Option) {
+	CommonOptions = append(CommonOptions, opts...)
+}
 
 var repos = map[reflect.Type][]cmp.Option{}
 
@@ -32,18 +44,30 @@ func get(typ reflect.Type) []cmp.Option {
 	return repos[typ]
 }
 
+func join(oo ...[]cmp.Option) []cmp.Option {
+	n := 0
+	for _, o := range oo {
+		n += len(o)
+	}
+	opts := make([]cmp.Option, 0, n)
+	for _, o := range oo {
+		if len(o) == 0 {
+			continue
+		}
+		opts = append(opts, o...)
+	}
+	return opts
+}
+
 func check(t testing.TB, expected, actual interface{}) bool {
+	var opts2 []cmp.Option
 	texp, tact := reflect.TypeOf(expected), reflect.TypeOf(actual)
 	opts := get(texp)
 	if texp != tact {
-		opts2 := get(tact)
-		if len(opts2) > 0 {
-			tmp := make([]cmp.Option, 0, len(opts)+len(opts2))
-			opts = append(append(tmp, opts...), opts2...)
-		}
+		opts2 = get(tact)
 	}
 
-	diff := cmp.Diff(expected, actual, opts...)
+	diff := cmp.Diff(expected, actual, join(CommonOptions, opts, opts2)...)
 	if diff == "" {
 		return true
 	}
