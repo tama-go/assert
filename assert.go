@@ -60,6 +60,7 @@ func join(oo ...[]cmp.Option) []cmp.Option {
 }
 
 func check(t testing.TB, expected, actual interface{}) bool {
+	t.Helper()
 	var opts2 []cmp.Option
 	texp, tact := reflect.TypeOf(expected), reflect.TypeOf(actual)
 	opts := get(texp)
